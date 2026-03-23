@@ -7,8 +7,9 @@ import org.kami.ballSettings.factory.CreadorBolaImagen;
 import org.kami.ballSettings.modelo.Bola;
 import org.kami.ballSettings.modelo.EstadoBola;
 import org.kami.ballSettings.observer.ObserverBola;
+import org.kami.networkService.SendService;
 
-import javax.swing.JPanel;
+import javax.swing.*;
 import java.awt.*;
 
 /**
@@ -31,14 +32,35 @@ public class PanelBolas extends JPanel implements ObserverBola {
     /** Bola que se mostrará en el panel */
     private Bola bola;
 
-    /** Estado actual de la bola utilizado para dibujarla */
+    /** Estado actual de la bola utilizado para dibujarla, volatile Garantiza que todos los hilos vean
+     * el valor más actualizado, asegurando la visibilidad entre hilos.*/
     private volatile EstadoBola estadoActual;
-
+    /**
+     * Inyección del SendService que enviara los nuevos datos de la bola al servidor
+     */
+    private SendService sendService;
     /**
      * Constructor del panel. Inicializa el tamaño, color de fondo,
      * crea la bola utilizando una fábrica y arranca el hilo de animación.
+     *
+     * <p>El panel se configura con las dimensiones definidas en {@link ConfigBola},
+     * fondo morado oscuro, y una bola creada a partir de una imagen mediante el
+     * patrón de fábrica {@link CreadorBolaImagen}. La bola registra este panel
+     * como observador para recibir notificaciones de cambio de estado.</p>
+     *
+     * <p>Si {@code bolaActiva} es {@code true}, se inicia inmediatamente el
+     * {@link HiloAnimacion}, lo que significa que este cliente es el dueño
+     * de la bola y controla su movimiento. Si es {@code false}, el panel
+     * espera a recibir la bola desde el otro cliente a través de la red.</p>
+     *
+     * @param sendService servicio de envío inyectado que permite transmitir
+     *                    el estado de la bola al servidor cuando sale del panel.
+     * @param bolaActiva  {@code true} si la bola debe iniciar su animación en
+     *                    este cliente; {@code false} si la bola comienza inactiva
+     *                    y será recibida desde el otro extremo de la conexión.
      */
-    public PanelBolas() {
+    public PanelBolas(SendService sendService, boolean bolaActiva) {
+        //System.out.println("[panelBolas] sendService recibido " + sendService );
         setPreferredSize(new Dimension(ConfigBola.ANCHO_PANEL, ConfigBola.ALTO_PANEL));
         setBackground(new Color(0x52, 0x00, 0x80));
 
@@ -47,8 +69,12 @@ public class PanelBolas extends JPanel implements ObserverBola {
 
         this.bola.agregarObserver(this);
         this.estadoActual = bola.getEstado();
-
-        new HiloAnimacion(bola).iniciar();
+        this.sendService = sendService;
+        if (bolaActiva){
+            new HiloAnimacion(bola).iniciar();
+        }else{
+            bola.desactivar();
+        }
     }
 
     /**
@@ -71,14 +97,32 @@ public class PanelBolas extends JPanel implements ObserverBola {
      */
     @Override
     public void onBolaSalio(EstadoBola estado) {
+       // System.out.println("[onBolaSalio] llamado, sendService =  " + sendService);
+       // System.out.println("[onBolaSalio] this = " + this + "sendService =  " + sendService);
         this.estadoActual = estado;
         repaint();
-        System.out.println("[PanelBolas] Bola salió → " + estado
-                + " | TCP enviaría esto a la otra pantalla.");
+        if(sendService != null){
+            sendService.enviar(estado.getPosY(), bola.getVy());
+            System.out.println("[PanelBolas] enviando → y=" + estado.getPosY()
+                    + " vy= " + bola.getVy());
+        }
+
+    }
+    /**
+     * Llamado por el ListenService cuando llegan coordenadas del otro PC.
+     * Reinicia la bola y lanza un nuevo hilo de animación.
+     */
+    public void recibirBola(int y, int vy) {
+        SwingUtilities.invokeLater(() -> {
+            bola.reiniciar(y, vy);
+            new HiloAnimacion(bola).iniciar();
+            System.out.println("[PanelBolas] Bola recibida → y=" + y + " vy=" + vy);
+        });
     }
 
     /**
      * Método de Swing encargado de dibujar el contenido del panel.
+     * Muestra el último estado de la bola y registra el evento.
      *
      * @param g objeto Graphics utilizado para realizar el dibujo
      */
