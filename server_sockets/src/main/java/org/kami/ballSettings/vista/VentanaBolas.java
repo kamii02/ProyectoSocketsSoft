@@ -24,12 +24,14 @@ public class VentanaBolas extends JFrame {
      * Constructor de la ventana principal.
      * Inicializa la interfaz gráfica y agrega el panel donde
      * se dibuja la bola.
+     *
+     * @param panel es el paneBolas ya construido previamente
      */
-    public VentanaBolas() {
+    public VentanaBolas(PanelBolas panel) {
         setTitle("Bola TCP — Pantalla Local");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        add(new PanelBolas());
+        add(panel);
 
         pack();
         setLocationRelativeTo(null);
