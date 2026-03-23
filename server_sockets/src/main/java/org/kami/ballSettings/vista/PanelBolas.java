@@ -7,8 +7,9 @@ import org.kami.ballSettings.factory.CreadorBolaImagen;
 import org.kami.ballSettings.modelo.Bola;
 import org.kami.ballSettings.modelo.EstadoBola;
 import org.kami.ballSettings.observer.ObserverBola;
+import org.kami.networkService.SendService;
 
-import javax.swing.JPanel;
+import javax.swing.*;
 import java.awt.*;
 
 /**
@@ -31,14 +32,23 @@ public class PanelBolas extends JPanel implements ObserverBola {
     /** Bola que se mostrará en el panel */
     private Bola bola;
 
-    /** Estado actual de la bola utilizado para dibujarla */
+    /** Estado actual de la bola utilizado para dibujarla, con la palabra reservada volatile
+     *  para que todos los hilos obtengan el estado mas actualizado */
     private volatile EstadoBola estadoActual;
+
+    /**
+     * Inyección del SendService que enviara los nuevos datos de la bola al cliente
+     */
+    private SendService sender;
 
     /**
      * Constructor del panel. Inicializa el tamaño, color de fondo,
      * crea la bola utilizando una fábrica y arranca el hilo de animación.
+     *
+     * @param sender SendService inyectado para envio de datos al cliente
+     * @param bolaActiva estado de la bola para aparicion en el panel
      */
-    public PanelBolas() {
+    public PanelBolas(SendService sender, boolean bolaActiva) {
         setPreferredSize(new Dimension(ConfigBola.ANCHO_PANEL, ConfigBola.ALTO_PANEL));
         setBackground(new Color(0x52, 0x00, 0x80));
 
@@ -47,8 +57,13 @@ public class PanelBolas extends JPanel implements ObserverBola {
 
         this.bola.agregarObserver(this);
         this.estadoActual = bola.getEstado();
+        this.sender = sender;
 
-        new HiloAnimacion(bola).iniciar();
+        if(bolaActiva) {
+            new HiloAnimacion(bola).iniciar();
+        }else{
+            bola.desactivar();
+        }
     }
 
     /**
@@ -73,8 +88,23 @@ public class PanelBolas extends JPanel implements ObserverBola {
     public void onBolaSalio(EstadoBola estado) {
         this.estadoActual = estado;
         repaint();
-        System.out.println("[PanelBolas] Bola salió → " + estado
-                + " | TCP enviaría esto a la otra pantalla.");
+        if(sender != null){
+            sender.enviar(estado.getPosY(), bola.getVy());
+            System.out.println("[panelBolas] Enviado -> y="+estado.getPosY()
+                    + ", VelocidadY=" + bola.getVy());
+        }
+    }
+
+    /**
+     * Llamado por el ListenService cuando llegan coordenadas del otro PC.
+     * Reinicia la bola y lanza un nuevo hilo de animación.
+     */
+    public void recibirBola(int y, int vy) {
+        SwingUtilities.invokeLater(() -> {
+            bola.reiniciar(y, vy);
+            new HiloAnimacion(bola).iniciar();
+            System.out.println("[PanelBolas] Bola recibida → y=" + y + " vy=" + vy);
+        });
     }
 
     /**

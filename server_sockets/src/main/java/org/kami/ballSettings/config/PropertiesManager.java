@@ -1,0 +1,80 @@
+package org.kami.ballSettings.config;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+/**
+ * Implementación de {@link IConfigReader} que obtiene la configuración
+ * desde un archivo de propiedades ubicado en el classpath.
+ *
+ * <p>
+ * Esta clase se encarga de:
+ * <ul>
+ *     <li>Cargar el archivo de configuración al inicializarse.</li>
+ *     <li>Proveer acceso a los valores definidos en dicho archivo.</li>
+ * </ul>
+ * </p>
+ *
+ * <p>
+ * Si el archivo no se encuentra, se lanza una excepción en tiempo de ejecución.
+ * Si ocurre un error al leer el archivo, se registra en consola.
+ * </p>
+ *
+ * @author Manuel
+ * @version 1.0
+ * @since 1.0
+ */
+public class PropertiesManager implements IConfigReader {
+    /**
+     * Objeto que almacena las propiedades cargadas desde el archivo.
+     */
+    Properties prop =  new Properties();
+
+    /**
+     * Constructor que carga el archivo de propiedades desde el classpath.
+     *
+     * @param propFile nombre del archivo de propiedades (por ejemplo, {@code application.properties}).
+     * @throws RuntimeException si el archivo no se encuentra en el classpath.
+     */
+    public PropertiesManager(String propFile) {
+        try(InputStream input = getClass().getClassLoader().getResourceAsStream(propFile)) {
+            if(input == null){
+                throw new RuntimeException("Error: no se encontro el archivo");
+            }
+            prop.load(input);
+        }catch (IOException e){
+            System.out.printf("Error critico al leer las propiedades:  "+ e.getMessage());
+        }
+    }
+
+    /**
+     * Obtiene el puerto configurado para el servidor.
+     *
+     * <p>
+     * Este valor se obtiene de la propiedad {@code server.port}.
+     * </p>
+     *
+     * @return el número de puerto como entero.
+     * @throws NumberFormatException si el valor no es un número válido.
+     */
+    @Override
+    public int getPort() {
+        return Integer.parseInt(prop.getProperty("server.port"));
+    }
+
+    /**
+     * Indica si la bola debe iniciar activa.
+     *
+     * <p>
+     * Este valor se obtiene de la propiedad {@code bola.activa}.
+     * </p>
+     *
+     * @return {@code true} si la bola está activa, {@code false} en caso contrario.
+     */
+    @Override
+    public boolean bolaActiva() {
+        return Boolean.parseBoolean(prop.getProperty("bola.activa"));
+    }
+}

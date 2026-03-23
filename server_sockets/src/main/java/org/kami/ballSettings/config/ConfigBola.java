@@ -16,16 +16,16 @@ package org.kami.ballSettings.config;
 public final class ConfigBola {
 
     /** Ancho del panel donde se mueve la bola */
-    public static final int ANCHO_PANEL  = 900;
+    public static final int ANCHO_PANEL  = 1366;
 
     /** Alto del panel donde se mueve la bola */
-    public static final int ALTO_PANEL   = 500;
+    public static final int ALTO_PANEL   = 768;
 
     /** Tamaño de la bola en píxeles */
-    public static final int TAMANIO_BOLA = 50;
+    public static final int TAMANIO_BOLA = 70;
 
     /** Velocidad horizontal de la bola */
-    public static final int VELOCIDAD_X = 3;
+    public static final int VELOCIDAD_X = 4;
 
     /** Velocidad vertical de la bola */
     public static final int VELOCIDAD_Y = 3;
