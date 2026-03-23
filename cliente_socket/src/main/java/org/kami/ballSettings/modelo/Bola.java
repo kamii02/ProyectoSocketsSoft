@@ -83,6 +83,14 @@ public class Bola implements SubjectBola {
         this.altoPantalla  = altoPantalla;
         this.activa        = true;
     }
+    /**
+     * obtiene la velocidad en la que va la pelota, hacia arriba o hacia abajo
+     *
+     * @return velocidad de la bola
+     */
+    public int getVy() {
+        return vy;
+    }
 
     /**
      * Actualiza la posición de la bola en cada ciclo de animación.
@@ -143,13 +151,22 @@ public class Bola implements SubjectBola {
      * Reinicia la bola en el lado izquierdo de la pantalla.
      *
      * @param nuevaPosY nueva posición vertical inicial
+     * @param nuevoVy nueva velolcidad de la pelota
      */
-    public void reiniciar(int nuevaPosY) {
+    public void reiniciar(int nuevaPosY, int nuevoVy) {
         this.posX   = 0;
         this.posY   = nuevaPosY;
+        this.vy = nuevoVy;
         this.activa = true;
     }
-
+    
+    /**
+     * Cambia el estado de la bola para modificar su aparicion en el panel
+     */
+    public void desactivar() {
+        this.activa = false;
+    }
+    
     /**
      * Agrega un observador que será notificado
      * cuando la bola cambie de estado.
